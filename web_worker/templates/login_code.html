@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VSPhone Global Access</title>
+    <link rel="stylesheet" href="/static/login.css?v={{ now }}" />
+    <style>
+      .buram {
+        filter: blur(10px);
+        user-select: none;
+        transition: filter 0.3s ease;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg-orb orb-a"></div>
+    <div class="bg-orb orb-b"></div>
+    <div class="bg-grid"></div>
+
+    <main class="shell">
+      <section id="authCard" class="auth-shell">
+        <div class="auth-panel">
+          <p class="auth-kicker">VSPHONE WEB WORKER</p>
+          <h1 class="brand-title" style="cursor:pointer;" onclick="this.classList.toggle('buram')">TRIO <span>MERAK</span></h1>
+          <p class="brand-meta">Created by Imam</p>
+
+          {% if session.get('is_admin') %}
+          <!-- ADMIN DASHBOARD PANEL -->
+          <section id="adminPanel" class="stack auth-form admin-panel">
+            <div class="admin-head admin-subhead" style="margin-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:15px;">
+              <div>
+                <span class="auth-kicker">admin_access_codes</span>
+                <h2>Kode Akses</h2>
+              </div>
+              <div style="display:flex; gap:10px;">
+                <a href="/logout" class="ghost-btn" style="text-decoration:none; display:flex; align-items:center; justify-content:center;">Keluar</a>
+                <a href="/" class="primary-btn" style="text-decoration:none; display:flex; align-items:center; justify-content:center;">Buka Dashboard</a>
+              </div>
+            </div>
+            
+            <div class="admin-code-create" style="display:flex; gap:10px; flex-wrap:wrap;">
+              <select id="admin-duration" style="flex:1; padding: 12px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: white;">
+                <option value="1" style="color: black;">1 Jam (Trial)</option>
+                <option value="6" style="color: black;">6 Jam (Trial)</option>
+                <option value="24" selected style="color: black;">1 Hari</option>
+                <option value="72" style="color: black;">3 Hari</option>
+              </select>
+              <button onclick="generateAccessCode()" class="primary-btn" type="button" style="width:auto; flex-shrink:0;">Create Kode Baru</button>
+            </div>
+            
+            <div class="admin-list" style="margin-top:20px; max-height:250px; overflow-y:auto; border: 1px solid var(--line); border-radius:8px; padding:10px; background:rgba(0,0,0,0.2);">
+              {% for code, info in codes.items() %}
+              <div class="admin-list-item" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--line); padding: 8px 0;">
+                <div>
+                  <strong style="color:white; font-size:16px;">{{ code }}</strong><br>
+                  <small style="color:var(--muted)">{% if info.used_by %}Terpakai oleh: <strong>{{info.used_by}}</strong>{% else %}Belum terpakai{% endif %}</small>
+                </div>
+                <button onclick="deleteAccessCode('{{ code }}')" class="ghost-btn" style="color:#ef4444; border-color:rgba(239,68,68,0.2); padding: 4px 10px; min-height:0; height:32px;">Hapus</button>
+              </div>
+              {% else %}
+              <p style="text-align:center; color:var(--muted); font-size:14px;">Belum ada kode akses.</p>
+              {% endfor %}
+            </div>
+
+            <div class="admin-head admin-subhead" style="margin-top: 30px; margin-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:15px;">
+              <div>
+                <span class="auth-kicker">users</span>
+                <h2>Daftar User</h2>
+              </div>
+            </div>
+            <div class="admin-list" style="max-height:250px; overflow-y:auto; border: 1px solid var(--line); border-radius:8px; padding:10px; background:rgba(0,0,0,0.2);">
+              {% for username, info in users.items() %}
+              <div class="admin-list-item" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--line); padding: 8px 0; flex-wrap: wrap; gap: 10px;">
+                <div style="flex: 1; min-width: 150px;">
+                  <strong style="color:white; font-size:16px;">{{ username }}</strong><br>
+                  <small style="color:var(--muted)">
+                    {% if info.expires_at == None %}Selamanya{% elif info.expires_at > now %}Sisa: {{ ((info.expires_at - now) / 3600)|round(1) }} Jam{% else %}Kedaluwarsa{% endif %}
+                  </small>
+                </div>
+                <div style="display:flex; gap:5px; align-items:center;">
+                  <select id="extend-duration-{{ username }}" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--line); background: transparent; color: white; height: 32px; font-size: 12px;">
+                    <option value="1" style="color: black;">+1 Jam</option>
+                    <option value="6" style="color: black;">+6 Jam</option>
+                    <option value="24" selected style="color: black;">+1 Hari</option>
+                    <option value="72" style="color: black;">+3 Hari</option>
+                  </select>
+                  <button onclick="extendUser('{{ username }}')" class="ghost-btn" style="color:#10b981; border-color:rgba(16,185,129,0.2); padding: 4px 10px; min-height:0; height:32px;">Perpanjang</button>
+                  <button onclick="deleteUser('{{ username }}')" class="ghost-btn" style="color:#ef4444; border-color:rgba(239,68,68,0.2); padding: 4px 10px; min-height:0; height:32px;">Hapus</button>
+                </div>
+              </div>
+              {% else %}
+              <p style="text-align:center; color:var(--muted); font-size:14px;">Belum ada user terdaftar.</p>
+              {% endfor %}
+            </div>
+            
+            <script>
+            function generateAccessCode() {
+                const duration = document.getElementById("admin-duration").value;
+                const code = 'VSP' + Math.random().toString(36).substr(2, 6).toUpperCase();
+                fetch('/api/admin/generate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({code: code, duration_hours: duration})
+                }).then(r => r.json()).then(res => {
+                    if(res.success) location.reload();
+                    else alert(res.msg);
+                });
+            }
+            function deleteAccessCode(code) {
+                if(!confirm("Yakin hapus kode: " + code + "?")) return;
+                fetch('/api/admin/delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({code: code})
+                }).then(r => r.json()).then(res => {
+                    if(res.success) location.reload();
+                });
+            }
+            function deleteUser(username) {
+                if(!confirm("Yakin hapus user: " + username + "?")) return;
+                fetch('/api/admin/delete_user', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username: username})
+                }).then(r => r.json()).then(res => {
+                    if(res.success) location.reload();
+                });
+            }
+            function extendUser(username) {
+                const duration = document.getElementById("extend-duration-" + username).value;
+                if(!confirm("Yakin perpanjang user: " + username + " selama " + duration + " jam?")) return;
+                fetch('/api/admin/extend_user', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username: username, duration_hours: duration})
+                }).then(r => r.json()).then(res => {
+                    if(res.success) location.reload();
+                });
+            }
+            </script>
+          </section>
+
+          {% else %}
+          
+          <div class="auth-tabs">
+            <button id="loginTab" class="auth-tab {% if not register_active %}active{% endif %}" type="button" onclick="switchTab('login')">Login</button>
+            <button id="registerTab" class="auth-tab {% if register_active %}active{% endif %}" type="button" onclick="switchTab('register')">Daftar</button>
+            <button id="adminTab" class="auth-tab" type="button" onclick="switchTab('admin')">Admin</button>
+          </div>
+
+          <!-- LOGIN FORM -->
+          <form id="loginForm" method="POST" class="stack auth-form {% if register_active %}hidden{% endif %}">
+            <input type="hidden" name="action" value="login">
+            <label class="field">
+              <span>Username</span>
+              <input name="username" placeholder="Masukkan Username..." required autofocus />
+            </label>
+            <label class="field">
+              <span>Password</span>
+              <div class="password-wrap">
+                <input id="loginPassword" name="password" type="password" placeholder="........" required />
+                <button id="toggleLoginPassword" class="ghost-btn" type="button" onclick="const p=document.getElementById('loginPassword'); p.type=p.type==='password'?'text':'password'; this.innerText=p.type==='password'?'Hide':'Show';">Show</button>
+              </div>
+            </label>
+            
+            {% if success_msg %}
+            <p class="auth-note" style="color: #10b981; font-weight: bold;">{{ success_msg }}</p>
+            {% elif error and not register_active %}
+            <p class="auth-note" style="color: #ff4d4d;">{{ error }}</p>
+            {% else %}
+            <p class="auth-note">Masuk menggunakan Username dan Password Anda.</p>
+            {% endif %}
+
+            <button class="primary-btn" type="submit">Masuk</button>
+          </form>
+
+          <!-- REGISTER FORM -->
+          <form id="registerForm" method="POST" class="stack auth-form {% if not register_active %}hidden{% endif %}">
+            <input type="hidden" name="action" value="register">
+            <label class="field">
+              <span>Username Baru</span>
+              <input name="username" placeholder="Buat Username..." required />
+            </label>
+            <label class="field">
+              <span>Password Baru</span>
+              <div class="password-wrap">
+                <input id="registerPassword" name="password" type="password" placeholder="........" required />
+                <button id="toggleRegisterPassword" class="ghost-btn" type="button" onclick="const p=document.getElementById('registerPassword'); p.type=p.type==='password'?'text':'password'; this.innerText=p.type==='password'?'Hide':'Show';">Show</button>
+              </div>
+            </label>
+            <label class="field">
+              <span>Kode Akses</span>
+              <input name="access_code" placeholder="Misal: TRIAL1" required />
+            </label>
+            
+            {% if error and register_active %}
+            <p class="auth-note" style="color: #ff4d4d;">{{ error }}</p>
+            {% else %}
+            <p class="auth-note">Satu kode akses hanya bisa dipakai untuk mendaftar satu akun.</p>
+            {% endif %}
+
+            <button class="primary-btn" type="submit" style="background: #10b981; border-color: #059669;">Daftar Akun</button>
+          </form>
+
+          <!-- ADMIN FORM -->
+          <form id="adminForm" method="POST" class="stack auth-form hidden">
+            <input type="hidden" name="action" value="admin">
+            <label class="field">
+              <span>Password Admin</span>
+              <div class="password-wrap">
+                <input id="adminPassword" name="access_code" type="password" placeholder="Masukkan Password Admin" required />
+                <button id="toggleAdminPassword" class="ghost-btn" type="button" onclick="const p=document.getElementById('adminPassword'); p.type=p.type==='password'?'text':'password'; this.innerText=p.type==='password'?'Hide':'Show';">Show</button>
+              </div>
+            </label>
+            
+            {% if error and error == "Password Admin Salah!" %}
+            <p class="auth-note" style="color: #ff4d4d;">{{ error }}</p>
+            {% else %}
+            <p class="auth-note">Login sebagai Admin untuk mengelola sistem.</p>
+            {% endif %}
+
+            <button class="primary-btn" type="submit" style="background: #f59e0b; border-color: #d97706;">Masuk Admin</button>
+          </form>
+          
+          <script>
+            function switchTab(tab) {
+              document.getElementById('loginTab').classList.remove('active');
+              document.getElementById('registerTab').classList.remove('active');
+              document.getElementById('adminTab').classList.remove('active');
+              
+              document.getElementById('loginForm').classList.add('hidden');
+              document.getElementById('registerForm').classList.add('hidden');
+              document.getElementById('adminForm').classList.add('hidden');
+              
+              if (tab === 'login') {
+                document.getElementById('loginTab').classList.add('active');
+                document.getElementById('loginForm').classList.remove('hidden');
+              } else if (tab === 'register') {
+                document.getElementById('registerTab').classList.add('active');
+                document.getElementById('registerForm').classList.remove('hidden');
+              } else {
+                document.getElementById('adminTab').classList.add('active');
+                document.getElementById('adminForm').classList.remove('hidden');
+              }
+            }
+            
+            {% if error and error == "Password Admin Salah!" %}
+            switchTab('admin');
+            {% endif %}
+          </script>
+          {% endif %}
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

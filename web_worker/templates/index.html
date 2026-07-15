@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VSPhone Web Worker</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        /* Paksa semua option punya background gelap dan teks putih terang */
+        option {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+        }
+        /* Perbaiki select yang kusam */
+        select {
+            color: #f8fafc !important;
+        }
+    </style>
+    <script>
+        const IS_ADMIN = {{ 'true' if session.get('is_admin') else 'false' }};
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 15px; text-align: center;">
+                <div>
+                    <h1>TRIO MERAK</h1>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+                    <button id="btn-extractor" class="run-btn" style="width: auto; padding: 10px 15px; margin-top: 0; background-color: #8b5cf6; border-color: #7c3aed; flex: 1 1 auto;" title="Ekstrak Reff dari WhatsApp">Reff Extractor</button>
+                    <button id="btn-open-cloud-apk" class="run-btn" style="width: auto; padding: 10px 15px; margin-top: 0; background-color: #10b981; border-color: #059669; color: white; flex: 1 1 auto;" title="Install APK dari Cloud Storage">📥 Install APK (Cloud)</button>
+                    <button id="btn-edit-scripts" class="run-btn" style="width: auto; padding: 10px 15px; margin-top: 0; min-width: 150px; flex: 1 1 auto; display: none;">Edit Scripts (Debug)</button>
+                    <button id="btn-logout-panel" class="stop-btn" style="width: auto; padding: 10px 15px; margin-top: 0; display: none; flex: 1 1 auto;">Logout Panel</button>
+                    <button id="btn-reboot-terminal" class="stop-btn" style="width: auto; padding: 10px 15px; margin-top: 0; background-color: #f59e0b; border: 1px solid #d97706; color: white; flex: 1 1 auto; display: none;" title="Reboot Terminal">🔄 Reboot</button>
+                    <button id="btn-stop-terminal" class="stop-btn" style="width: auto; padding: 10px 15px; margin-top: 0; background-color: #ef4444; border: 1px solid #b91c1c; flex: 1 1 auto; display: none;" title="Stop Terminal">⏹️ Stop</button>
+                    <a href="/logout" class="stop-btn" style="width: auto; padding: 10px 15px; margin-top: 0; background-color: #374151; border: 1px solid #1f2937; color: white; flex: 1 1 auto; text-decoration: none; box-sizing: border-box;" title="Logout Kode Akses Web">🚪 Logout Web</a>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Login & Load PADs Section -->
+        <section id="login-section" class="glass-panel">
+            <h2>Login VSPhone</h2>
+            <div class="input-group">
+                <label>Email</label>
+                <input type="email" id="email" value="">
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="password" value="">
+            </div>
+            
+            <h2>Data PAD</h2>
+            <div class="input-group">
+                <label>Masukkan Kode PAD (1 per baris)</label>
+                <textarea id="pads-text" rows="8"></textarea>
+            </div>
+            
+            <div class="input-group" style="flex-direction: row; align-items: center; gap: 10px; margin-bottom: 20px;">
+                <input type="checkbox" id="remember-me" checked style="width: auto; margin: 0;">
+                <label for="remember-me" style="margin: 0; cursor: pointer;">Remember Email, Password & PADs</label>
+            </div>
+            
+            <button id="btn-login" class="primary-btn">Login & Load PADs</button>
+            <p id="login-status"></p>
+        </section>
+
+        <!-- Main Dashboard (Hidden until login) -->
+        <section id="dashboard-section" class="hidden">
+            <div class="dashboard-header">
+                <div style="display: flex; flex-direction: column; gap: 15px; flex: 1; min-width: 280px; max-width: 500px;">
+                    <div class="manual-adb-container glass-panel">
+                        <h3 style="margin-top: 0; margin-bottom: 15px; color: #f59e0b;">ADB</h3>
+                        <div style="display: flex; gap: 10px;">
+                            <textarea id="manual-adb-input" placeholder="Command content, mul" style="flex: 1; padding: 10px; border-radius: 5px; border: 1px solid #f59e0b; background: transparent; color: white; resize: vertical; min-height: 42px; font-family: inherit;"></textarea>
+                            <button id="btn-manual-adb" style="background-color: #f59e0b; color: white; border: none; border-radius: 5px; padding: 10px 20px; font-weight: bold; cursor: pointer; width: auto; height: fit-content;">Execute</button>
+                        </div>
+                    </div>
+                    <div id="batch-reff-container" class="glass-panel" style="display:none; flex-direction: column; gap: 10px; width: 100%;">
+                        <h3 style="margin-top: 0; margin-bottom: 5px; color: #10b981;">Ref</h3>
+                        <input type="text" id="batch-reff-input" placeholder="Masukkan Kode Ref" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #10b981; background: rgba(0,0,0,0.3); color: white; box-sizing: border-box;">
+                    </div>
+                </div>
+                <div class="batch-action glass-panel">
+                    <h3>Batch Action</h3>
+                    <div id="batch-buttons-container" class="batch-buttons-container"></div>
+                    <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
+                        <label style="color: white; font-weight: bold; margin: 0;">Loop:</label>
+                        <input type="number" id="batch-loop-input" value="1" min="1" style="width: 60px; padding: 8px; border-radius: 5px; border: none;">
+                        <button id="btn-batch-full-auto" class="run-btn" style="flex: 1; margin: 0;">Run Full Auto</button>
+                        <button id="btn-batch-pause" class="run-btn" style="background-color: #3b82f6; margin: 0; width: 40px; font-size: 1.2rem; padding: 5px;" title="Pause/Resume Auto">⏸</button>
+                    </div>
+                    <button id="btn-batch-terminate" class="stop-btn" style="margin-top: 0; background-color: rgba(239, 68, 68, 0.2);">Terminate All</button>
+                </div>
+            </div>
+            
+            <div class="selection-bar glass-panel" style="display: flex; gap: 15px; margin-bottom: 15px; padding: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                        <input type="checkbox" id="global-select-all" checked> <strong>Select All</strong>
+                    </label>
+                    <button id="btn-invert-selection" style="background: transparent; border: 1px solid var(--border-color); color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer;">Invert Selection</button>
+                    <div style="width: 1px; height: 20px; background-color: var(--border-color); margin: 0 5px;"></div>
+                    <label style="cursor: pointer; display: flex; align-items: center; gap: 5px; color: #fbbf24; font-size: 0.9rem;" title="Bunyikan notif setelah semua tugas selesai">
+                        <input type="checkbox" id="global-bell" checked> 🔔 Notif Selesai
+                    </label>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" id="manual-add-pad-input" placeholder="Kode PAD (misal: APP...)" style="padding: 6px 10px; border-radius: 5px; border: 1px solid #3b82f6; background: rgba(0,0,0,0.3); color: white; width: 180px; font-family: inherit;">
+                    <button id="btn-manual-add-pad" class="run-btn" style="margin: 0; padding: 6px 15px; width: auto; background-color: #3b82f6; border-color: #2563eb;">+ Tambah PAD</button>
+                </div>
+                <div id="selection-counter" style="color: #94a3b8; font-size: 0.9rem;">0 Selected</div>
+            </div>
+
+            <div id="pads-grid" class="pads-grid">
+                <!-- PAD Cards will be injected here -->
+            </div>
+
+            <div class="glass-panel" style="margin-top: 15px; margin-bottom: 15px; padding: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 style="margin: 0; font-size: 1rem; color: #38bdf8;">System & Error Logs</h3>
+                    <button class="stop-btn" onclick="fetch('/api/clear_batch_map', {method: 'POST'})" style="padding: 4px 10px; font-size: 0.8rem; margin: 0; width: auto; background-color: rgba(239, 68, 68, 0.2);">Clear Logs</button>
+                </div>
+                <div id="reff-log-container" style="height: 120px; overflow-y: auto; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 5px; font-family: monospace; font-size: 0.85rem; color: #a7f3d0; border: 1px solid #1e293b;">
+                    <!-- Logs will appear here -->
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Script Editor Modal -->
+    <div id="editor-modal" class="modal hidden">
+        <div class="modal-content glass-panel" style="max-width: 600px; width: 90%;">
+            <h3>Script Editor (Debug)</h3>
+            <div class="input-group" style="flex-direction: row; align-items: center; gap: 10px;">
+                <label style="margin: 0; min-width: 100px;">Pilih Fungsi:</label>
+                <select id="editor-select" style="flex: 1; padding: 8px; border-radius: 5px; background: rgba(0,0,0,0.2); color: white; border: 1px solid var(--border-color);"></select>
+            </div>
+            <textarea id="editor-textarea" style="width: 100%; height: 300px; margin-top: 15px; padding: 10px; background: #0f172a; color: #34d399; font-family: monospace; border: 1px solid var(--border-color); border-radius: 8px; resize: vertical;"></textarea>
+            
+            <div style="display: flex; justify-content: space-between; gap: 10px; margin-top: 15px;">
+                <button id="btn-restore-default" class="stop-btn" style="width: auto;">Restore Default</button>
+                <div style="display: flex; gap: 10px;">
+                    <button id="btn-close-editor" class="stop-btn" style="width: auto;">Close</button>
+                    <button id="btn-save-editor" class="run-btn" style="width: auto;">Save Script</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reff Extractor Modal -->
+    <div id="extractor-modal" class="modal hidden">
+        <div class="modal-content glass-panel" style="max-width: 500px; width: 90%;">
+            <h3>Reff Extractor</h3>
+            <p style="font-size: 0.9rem; margin-top: 0; margin-bottom: 10px; color: #94a3b8;">Paste chat WhatsApp di bawah ini untuk mengambil kode Reff (TRPH4_...)</p>
+            <textarea id="extractor-input" placeholder="Paste di sini... [15.29, 6/7/2026] Arif: TRPH4_59LMEZ0XF" style="width: 100%; height: 120px; padding: 10px; background: rgba(0,0,0,0.3); color: white; border: 1px solid var(--border-color); border-radius: 8px; resize: vertical; box-sizing: border-box; font-family: inherit;"></textarea>
+            
+            <div style="display: flex; justify-content: center; margin: 15px 0;">
+                <button id="btn-extract-action" class="run-btn" style="width: auto; background-color: #10b981;">Extract & Bersihkan</button>
+            </div>
+            
+            <textarea id="extractor-output" placeholder="Hasil ekstrak akan muncul di sini..." readonly style="width: 100%; height: 120px; padding: 10px; background: #0f172a; color: #34d399; font-family: monospace; border: 1px solid var(--border-color); border-radius: 8px; resize: vertical; box-sizing: border-box;"></textarea>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+                <button id="btn-add-queue" class="run-btn" style="width: auto; background-color: #10b981; display: none;">Kirim ke Antrian</button>
+                <button id="btn-copy-extractor" class="run-btn" style="width: auto; background-color: #3b82f6; display: none;">Copy Hasil</button>
+                <button id="btn-close-extractor" class="stop-btn" style="width: auto;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cloud APK Modal -->
+    <div id="cloud-apk-modal" class="modal hidden">
+        <div class="modal-content glass-panel" style="max-width: 500px; width: 90%;">
+            <h3>Install APK dari Cloud Storage</h3>
+            <p style="font-size: 0.9rem; margin-top: 0; margin-bottom: 10px; color: #94a3b8;">
+                Pilih file APK yang sudah Anda upload di Cloud Storage VSPhone untuk di-install ke PAD yang dipilih.
+            </p>
+            <div class="input-group">
+                <label>Pilih APK:</label>
+                <select id="cloud-apk-select" style="background: rgba(0,0,0,0.3); color: white; border: 1px solid var(--border-color); padding: 10px; border-radius: 8px;">
+                    <option value="">Mengambil data APK dari server...</option>
+                </select>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+                <button id="btn-close-cloud-apk" class="stop-btn" style="width: auto;">Batal</button>
+                <button id="btn-install-cloud-apk" class="run-btn" style="width: auto; background-color: #10b981; color: white;" disabled>Transfer ke Selected PADs</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
