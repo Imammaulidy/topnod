@@ -7,6 +7,7 @@ import threading
 import os
 import subprocess
 import uuid
+import wd_worker
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for, make_response
 
 app = Flask(__name__)
@@ -477,6 +478,9 @@ def run_command():
     pad_code = data.get("pad_code")
     cmd_name = data.get("cmd_name")
     reff_code = data.get("reff_code", "")
+    wd_address = data.get("wd_address")
+    account_index = data.get("account_index")
+    
     try:
         loop_count = int(data.get("loop_count", 1))
     except:
@@ -521,14 +525,31 @@ def run_command():
                     state["pad_statuses"][pad_code] = f"[{i+1}/{loop_count}] {sq_cmd[:12]}..."
                     cmd_str = COMMANDS.get(sq_cmd, "")
                     if "{REFF_CODE}" in cmd_str:
-                        current_reff = reff_code
+                        batch_id = data.get("batch_id")
+                        if batch_id:
+                            with queue_lock:
+                                current_reff = state["batch_reff_map"].get(batch_id)
+                                if not current_reff and state["reff_queue"]:
+                                    current_reff = state["reff_queue"].pop(0)
+                                    state["batch_reff_map"][batch_id] = current_reff
+                        else:
+                            current_reff = reff_code
+                            with queue_lock:
+                                if state["reff_queue"]:
+                                    current_reff = state["reff_queue"].pop(0)
+                                    
                         if not current_reff:
-                            state["pad_statuses"][pad_code] = "Error: Reff Kosong"
+                            state["pad_statuses"][pad_code] = "Error: Antrian Reff Kosong"
                             time.sleep(2)
                             state["pad_statuses"][pad_code] = "Idle"
                             return
                         cmd_str = cmd_str.replace("{REFF_CODE}", current_reff)
                         state["pad_statuses"][pad_code] = f"[{i+1}/{loop_count}] Menggunakan Reff: {current_reff[:10]}..."
+                        
+                    if "{WD_ADDRESS}" in cmd_str and wd_address:
+                        cmd_str = cmd_str.replace("{WD_ADDRESS}", str(wd_address))
+                    if "{ACCOUNT_INDEX}" in cmd_str and account_index is not None:
+                        cmd_str = cmd_str.replace("{ACCOUNT_INDEX}", str(account_index))
                         
                     success, msg = api.vcadb_exec(pad_code, cmd_str, poll_timeout=90, check_abort=lambda: state["abort_flags"].get(pad_code, False))
                     
@@ -705,7 +726,8 @@ def clear_batch_map():
 @app.route('/api/commands', methods=['GET'])
 def api_get_commands():
     load_commands()
-    return jsonify(COMMANDS)
+    filtered_cmds = {k: v for k, v in COMMANDS.items() if k != "9. WD XLM BITGET"}
+    return jsonify(filtered_cmds)
 
 @app.route('/api/commands', methods=['POST'])
 def api_save_commands():
@@ -750,5 +772,41 @@ def load_reff_txt():
     except Exception as e:
         return jsonify({"success": False, "msg": str(e)})
 
+# ==========================================
+# WD XLM STANDALONE ROUTES
+# ==========================================
+@app.route('/wd_xlm')
+def route_wd_xlm():
+    return render_template('wd_xlm.html')
+
+@app.route('/api/wd_xlm/pair', methods=['POST'])
+def api_wd_pair():
+    data = request.json
+    wd_worker.pair_device(data['ip_port'], data['code'], data['session'])
+    return jsonify({"success": True})
+
+@app.route('/api/wd_xlm/connect', methods=['POST'])
+def api_wd_connect():
+    data = request.json
+    wd_worker.connect_device(data['ip_port'], data['session'])
+    return jsonify({"success": True})
+
+@app.route('/api/wd_xlm/run', methods=['POST'])
+def api_wd_run():
+    data = request.json
+    wd_worker.run_wd_script(data['ip_port'], data['address'], data['index'], data['session'])
+    return jsonify({"success": True})
+
+@app.route('/api/wd_xlm/status', methods=['GET'])
+def api_wd_status():
+    sess = request.args.get('session')
+    return jsonify({"logs": wd_worker.get_logs(sess)})
+    
+@app.route('/api/wd_xlm/clear', methods=['GET'])
+def api_wd_clear():
+    sess = request.args.get('session')
+    wd_worker.clear_logs(sess)
+    return jsonify({"success": True})
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=3000)

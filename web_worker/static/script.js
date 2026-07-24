@@ -5,6 +5,14 @@ document.addEventListener("DOMContentLoaded", () => {
     let prevStatuses = {};
     let globalWasRunning = false;
 
+    // Immediately show admin buttons if IS_ADMIN is set
+    if (typeof IS_ADMIN !== 'undefined' && IS_ADMIN) {
+        if(document.getElementById("btn-edit-scripts")) document.getElementById("btn-edit-scripts").style.display = "block";
+        if(document.getElementById("btn-reboot-terminal")) document.getElementById("btn-reboot-terminal").style.display = "block";
+        if(document.getElementById("btn-stop-terminal")) document.getElementById("btn-stop-terminal").style.display = "block";
+        if(document.getElementById("btn-logout-panel")) document.getElementById("btn-logout-panel").style.display = "block";
+    }
+
     function playBell() {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
@@ -861,7 +869,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
-
     // --- Reff Extractor Logic ---
     const btnExtractor = document.getElementById("btn-extractor");
     const extractorModal = document.getElementById("extractor-modal");
