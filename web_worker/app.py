@@ -413,10 +413,28 @@ class VsphoneAPI:
 
 
 def get_api(session_obj=None):
+    token = None
+    userid = None
     if session_obj:
-        return VsphoneAPI(token=session_obj.get("vsphone_token"), userid=session_obj.get("vsphone_userid"))
-    from flask import session as fl_session
-    return VsphoneAPI(token=fl_session.get("vsphone_token"), userid=fl_session.get("vsphone_userid"))
+        token = session_obj.get("vsphone_token")
+        userid = session_obj.get("vsphone_userid")
+    else:
+        from flask import session as fl_session
+        token = fl_session.get("vsphone_token")
+        userid = fl_session.get("vsphone_userid")
+        
+    if not token or not userid:
+        try:
+            session_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vsphone_session.json")
+            if os.path.exists(session_file):
+                with open(session_file, "r") as f:
+                    data = json.load(f)
+                    token = data.get("token")
+                    userid = data.get("userid")
+        except:
+            pass
+            
+    return VsphoneAPI(token=token, userid=userid)
 
 user_states = {}
 user_logs = {}
@@ -448,7 +466,7 @@ def add_log(userid, msg):
 
 @app.route("/")
 def index():
-    if "vsphone_token" not in session or "vsphone_userid" not in session:
+    if not session.get("is_authenticated"):
         return redirect(url_for("login_code"))
     codes = get_all_codes()
     users = get_all_users()
@@ -456,7 +474,7 @@ def index():
 
 @app.route("/v2")
 def index_v2():
-    if "vsphone_token" not in session or "vsphone_userid" not in session:
+    if not session.get("is_authenticated"):
         return redirect(url_for("login_code"))
     codes = get_all_codes()
     users = get_all_users()
