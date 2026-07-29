@@ -72,7 +72,7 @@ def check_access_code():
         return
 
     # Check User routes
-    if not session.get('is_authenticated'):
+    if not session.get('is_authenticated') and not session.get('is_admin') and not session.get('username'):
         return redirect(url_for('login_code'))
 
 
