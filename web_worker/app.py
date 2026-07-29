@@ -568,8 +568,8 @@ def run_command():
                     "4. Reff",
                     "5. Email",
                     "6. Password",
-                    "7. Predict Sambo",
-                    "8. Logout"
+                    "8. Predict Sambo",
+                    "9. Logout"
                 ]
             current_reff = None
             for i in range(loop_count):
