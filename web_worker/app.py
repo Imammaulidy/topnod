@@ -642,7 +642,7 @@ def run_command():
 
         state["pad_statuses"][pad_code] = f"Running {cmd_name}..."
         if cmd_name == "Manual ADB":
-            cmd_str = data.get("cmd_str", "")
+            cmd_str = data.get("cmd_str", "") or data.get("custom_command", "")
         else:
             cmd_str = COMMANDS.get(cmd_name, "")
         
