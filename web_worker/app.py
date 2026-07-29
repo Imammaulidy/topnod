@@ -466,7 +466,7 @@ def add_log(userid, msg):
 
 @app.route("/")
 def index():
-    if not session.get("is_authenticated"):
+    if not session.get("is_authenticated") and not session.get("is_admin") and not session.get("username"):
         return redirect(url_for("login_code"))
     codes = get_all_codes()
     users = get_all_users()
@@ -474,7 +474,7 @@ def index():
 
 @app.route("/v2")
 def index_v2():
-    if not session.get("is_authenticated"):
+    if not session.get("is_authenticated") and not session.get("is_admin") and not session.get("username"):
         return redirect(url_for("login_code"))
     codes = get_all_codes()
     users = get_all_users()
