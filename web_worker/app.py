@@ -7,7 +7,6 @@ import threading
 import os
 import subprocess
 import uuid
-import wd_worker
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for, make_response
 
 app = Flask(__name__)
@@ -132,6 +131,17 @@ def admin_extend_user():
             
     return jsonify({"success": True})
 
+def inject_master_session():
+    try:
+        session_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vsphone_session.json")
+        if os.path.exists(session_file):
+            with open(session_file, "r") as f:
+                data = json.load(f)
+                session["vsphone_token"] = data.get("token")
+                session["vsphone_userid"] = data.get("userid")
+    except:
+        pass
+
 @app.route('/login_code', methods=['GET', 'POST'])
 def login_code():
     if request.method == 'POST':
@@ -142,6 +152,7 @@ def login_code():
             if code == ADMIN_PASSWORD:
                 session['is_admin'] = True
                 session['is_authenticated'] = True
+                inject_master_session()
                 return redirect(url_for('login_code'))
             return render_template('login_code.html', error="Password Admin Salah!")
             
@@ -202,6 +213,7 @@ def login_code():
             session['is_admin'] = False
             session['is_authenticated'] = True
             session['username'] = username
+            inject_master_session()
             return redirect(url_for('index'))
             
     codes = get_all_codes()
@@ -356,23 +368,46 @@ class VsphoneAPI:
 
     def install_cloud_apk(self, pad_code, apk_info):
         try:
+            url = apk_info["downloadUrl"]
+            file_name = apk_info.get("fileName", "app.apk")
+            
+            # Attempt 1: New API uploadFileV3
+            payload = {
+                "padCodes": [pad_code],
+                "url": url,
+                "autoInstall": True,
+                "fileName": file_name
+            }
+            r = self.session.post(f"{BASE}/padApi/uploadFileV3", json=payload, headers=self.headers, timeout=15)
+            d = r.json()
+            if d.get("code") == 200:
+                return True, "Install command sent via uploadFileV3 API"
+            
+            # Attempt 2: Transfer to Cloud Phone (Legacy API) + ADB Install
             task_list = [{
                 "taskType": 10000,
                 "padCode": pad_code,
                 "equipmentId": "",
                 "taskContent": json.dumps({
-                    "downloadUrl": apk_info["downloadUrl"],
-                    "fileName": apk_info["fileName"],
+                    "downloadUrl": url,
+                    "fileName": file_name,
                     "fileType": apk_info.get("fileType", 2),
                     "fileId": apk_info.get("fileId", 0)
                 })
             }]
-            r = self.session.post(f"{BASE}/padTask/addPadTaskByJiGuang",
-                                  json={"taskList": task_list}, headers=self.headers, timeout=15)
-            d = r.json()
-            if d.get("code") == 200:
-                return True, "Install task sent"
-            return False, f"Install API error: {d.get('msg')}"
+            r2 = self.session.post(f"{BASE}/padTask/addPadTaskByJiGuang", json={"taskList": task_list}, headers=self.headers, timeout=15)
+            d2 = r2.json()
+            if d2.get("code") == 200:
+                # Force install the transferred file via ADB after a short delay
+                install_cmd = f"sleep 5; for f in $(find /sdcard /data/local/tmp -name '{file_name}*'); do pm install -r $f; done"
+                self.vcadb_exec(pad_code, install_cmd, poll_timeout=60)
+                return True, "File transferred to cloud phone and install triggered"
+            
+            # Attempt 3: Direct ADB Download Fallback
+            adb_str = f"curl -sL '{url}' -o /sdcard/Download/temp.apk || wget -qO /sdcard/Download/temp.apk '{url}'; pm install -r /sdcard/Download/temp.apk; rm /sdcard/Download/temp.apk"
+            self.vcadb_exec(pad_code, adb_str, poll_timeout=60)
+            
+            return False, f"Install APIs failed. (ADB fallback executed)"
         except Exception as e:
             return False, str(e)
 
@@ -413,9 +448,19 @@ def add_log(userid, msg):
 
 @app.route("/")
 def index():
+    if "vsphone_token" not in session or "vsphone_userid" not in session:
+        return redirect(url_for("login_code"))
     codes = get_all_codes()
     users = get_all_users()
     return render_template("index.html", session=session, codes=codes, users=users, now=time.time())
+
+@app.route("/v2")
+def index_v2():
+    if "vsphone_token" not in session or "vsphone_userid" not in session:
+        return redirect(url_for("login_code"))
+    codes = get_all_codes()
+    users = get_all_users()
+    return render_template("v2.html", session=session, codes=codes, users=users, now=time.time())
 
 @app.route("/logout")
 def logout():
@@ -772,41 +817,7 @@ def load_reff_txt():
     except Exception as e:
         return jsonify({"success": False, "msg": str(e)})
 
-# ==========================================
-# WD XLM STANDALONE ROUTES
-# ==========================================
-@app.route('/wd_xlm')
-def route_wd_xlm():
-    return render_template('wd_xlm.html')
 
-@app.route('/api/wd_xlm/pair', methods=['POST'])
-def api_wd_pair():
-    data = request.json
-    wd_worker.pair_device(data['ip_port'], data['code'], data['session'])
-    return jsonify({"success": True})
-
-@app.route('/api/wd_xlm/connect', methods=['POST'])
-def api_wd_connect():
-    data = request.json
-    wd_worker.connect_device(data['ip_port'], data['session'])
-    return jsonify({"success": True})
-
-@app.route('/api/wd_xlm/run', methods=['POST'])
-def api_wd_run():
-    data = request.json
-    wd_worker.run_wd_script(data['ip_port'], data['address'], data['index'], data['session'])
-    return jsonify({"success": True})
-
-@app.route('/api/wd_xlm/status', methods=['GET'])
-def api_wd_status():
-    sess = request.args.get('session')
-    return jsonify({"logs": wd_worker.get_logs(sess)})
-    
-@app.route('/api/wd_xlm/clear', methods=['GET'])
-def api_wd_clear():
-    sess = request.args.get('session')
-    wd_worker.clear_logs(sess)
-    return jsonify({"success": True})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=3001)

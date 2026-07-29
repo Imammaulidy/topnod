@@ -74,76 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 return numA - numB;
             });
             
-            const batchContainer = document.getElementById("batch-buttons-container");
-            const reffInput = document.getElementById("batch-reff-input");
-            
             commands.forEach(cmd => {
-                const wrapper = document.createElement("div");
-                wrapper.style.display = "flex";
-                wrapper.style.alignItems = "stretch";
-                wrapper.style.gap = "0";
-                wrapper.style.flex = "1 1 auto";
-                wrapper.style.margin = "5px";
-
-                const chkLabel = document.createElement("label");
-                chkLabel.style.display = "flex";
-                chkLabel.style.alignItems = "center";
-                chkLabel.style.padding = "0 10px";
-                chkLabel.style.backgroundColor = "rgba(0,0,0,0.3)";
-                chkLabel.style.border = "1px solid var(--border-color)";
-                chkLabel.style.borderRight = "none";
-                chkLabel.style.borderTopLeftRadius = "8px";
-                chkLabel.style.borderBottomLeftRadius = "8px";
-                chkLabel.style.cursor = "pointer";
-
-                const chk = document.createElement("input");
-                chk.type = "checkbox";
-                chk.className = "batch-sequence-chk";
-                chk.value = cmd;
-                // Default checked matching original hardcoded sequence
-                const defaultSeq = ["4. Reff", "5. Email", "6. Password", "7. Predict Sambo", "8. Logout"];
-                if (defaultSeq.includes(cmd)) {
-                    chk.checked = true;
-                }
-
-                chkLabel.appendChild(chk);
-
-                const btn = document.createElement("button");
-                btn.textContent = cmd;
-                btn.className = "run-btn";
-                btn.style.margin = "0";
-                btn.style.flex = "1";
-                btn.style.borderTopLeftRadius = "0";
-                btn.style.borderBottomLeftRadius = "0";
-
-                btn.onclick = () => {
-                    const globalReff = document.getElementById("batch-reff-input") ? document.getElementById("batch-reff-input").value : "";
-                    const batchId = Date.now().toString();
-                    padsList.forEach(pad => {
-                        const selectEl = document.getElementById(`select-${pad}`);
-                        
-                        const adbChk = document.getElementById(`adb-${pad}`);
-                        if (adbChk && !adbChk.checked) return;
-                        
-                        if(selectEl) {
-                            selectEl.value = cmd;
-                            if(window.toggleReffInput) window.toggleReffInput(pad);
-                        }
-                        
-                        const padReffEl = document.getElementById(`reff-${pad}`);
-                        let padReffValue = padReffEl && padReffEl.value.trim() ? padReffEl.value.trim() : globalReff;
-                        
-                        fetch("/api/run", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ pad_code: pad, cmd_name: cmd, reff_code: padReffValue, loop_count: 1, batch_id: batchId })
-                        });
-                    });
-                };
-                wrapper.appendChild(chkLabel);
-                wrapper.appendChild(btn);
-                batchContainer.appendChild(wrapper);
-                
                 if (cmd.includes("Reff")) {
                     const batchReffContainer = document.getElementById("batch-reff-container");
                     if (batchReffContainer) {
@@ -353,8 +284,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 card.id = `pad-card-${pad}`;
                 card.className = "pad-card";
                 
-                let optionsHtml = `<option value="Full Auto">-- Full Auto --</option>` + commands.map(cmd => `<option value="${cmd}">${cmd}</option>`).join("");
-                
+                const defaultSeq = ["4. Reff", "5. Email", "6. Password", "7. Predict Sambo", "8. Logout"];
+                let checkboxesHtml = commands.map(cmd => `
+                    <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                        <input type="checkbox" class="pad-sequence-chk-${pad}" value="${cmd}" ${defaultSeq.includes(cmd) ? 'checked' : ''} style="margin: 0; width: auto;" title="Tandai untuk Full Auto">
+                        <button class="run-btn" onclick="runCommand('${pad}', '${cmd}')" style="margin: 0; flex: 1; padding: 6px; font-size: 0.85rem; text-align: left;">${cmd}</button>
+                    </div>
+                `).join("");
+
                 card.innerHTML = `
                     <div class="pad-header" style="min-height: 85px; align-items: flex-start;">
                         <div style="display: flex; flex-direction: column; overflow: hidden; margin-right: 5px;">
@@ -375,14 +312,14 @@ document.addEventListener("DOMContentLoaded", () => {
                         <button onclick="runManualAdb('${pad}')" style="background-color: #f59e0b; color: white; border: none; border-radius: 4px; padding: 0 10px; font-weight: bold; cursor: pointer; font-size: 0.8rem; flex: 0 0 auto; width: auto;" title="Run Manual ADB">&gt;</button>
                     </div>
 
-                    <select id="select-${pad}" onchange="toggleReffInput('${pad}')">
-                        ${optionsHtml}
-                    </select>
-                    <input type="text" id="reff-${pad}" class="pad-reff-input" placeholder="Kode Reff" style="display:none;" />
-                    
-                    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: auto;">
-                        <button class="run-btn" onclick="runCommand('${pad}')" style="margin: 0;">Run</button>
-                        <button class="stop-btn" onclick="stopCommand('${pad}')" style="margin: 0;">Terminate</button>
+                    <div id="features-list-${pad}" style="display: flex; flex-direction: column; margin-bottom: 10px;">
+                        ${checkboxesHtml}
+                    </div>
+
+                    <input type="text" id="reff-${pad}" class="pad-reff-input" placeholder="Kode Reff" style="margin-bottom: 10px;" />
+                    <div style="display: flex; gap: 10px; margin-top: auto;">
+                        <button class="run-btn" onclick="runCommand('${pad}')" style="flex: 1; margin: 0;">Run Full Auto</button>
+                        <button class="stop-btn" onclick="stopCommand('${pad}')" style="flex: 1; margin: 0;">Terminate</button>
                     </div>
                 `;
                 padsGrid.appendChild(card);
@@ -530,21 +467,32 @@ document.addEventListener("DOMContentLoaded", () => {
         inputEl.value = ""; // clear after running
     }
 
-    // Run Command Single
-    window.runCommand = function(pad) {
-        // Allow solo running even if ADB toggle is off for batch actions
+    // Run Command Single or Full Auto
+    window.runCommand = function(pad, specificCmd) {
+        let cmdName = specificCmd || "Full Auto";
         
-        const cmdName = document.getElementById(`select-${pad}`).value;
-        const globalReff = document.getElementById("batch-reff-input").value;
-        const padReff = document.getElementById(`reff-${pad}`).value.trim();
+        const globalReff = document.getElementById("batch-reff-input") ? document.getElementById("batch-reff-input").value : "";
+        const padReffEl = document.getElementById(`reff-${pad}`);
+        const padReff = padReffEl ? padReffEl.value.trim() : "";
         const reffCode = padReff ? padReff : globalReff;
-        const loopInput = document.getElementById("batch-loop-input");
-        const loopCount = loopInput ? parseInt(loopInput.value) || 1 : 1;
+        
+        let payload = { pad_code: pad, cmd_name: cmdName, reff_code: reffCode, loop_count: 1 };
+        
+        if (cmdName === "Full Auto") {
+            const checkboxes = document.querySelectorAll(`.pad-sequence-chk-${pad}:checked`);
+            const sequence = Array.from(checkboxes).map(c => c.value);
+            if (sequence.length === 0) {
+                alert("Pilih minimal 1 aksi (centang checkbox) untuk Full Auto di PAD ini!");
+                return;
+            }
+            payload.sequence = sequence;
+            payload.batch_id = Date.now().toString();
+        }
         
         fetch("/api/run", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ pad_code: pad, cmd_name: cmdName, reff_code: reffCode, loop_count: loopCount })
+            body: JSON.stringify(payload)
         });
     }
 
@@ -563,14 +511,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     if (btnFullAuto) {
         btnFullAuto.addEventListener("click", () => {
-            const checkboxes = document.querySelectorAll(".batch-sequence-chk:checked");
-            const sequence = Array.from(checkboxes).map(c => c.value);
-            if (sequence.length === 0) {
-                alert("Pilih minimal 1 aksi (centang checkbox) untuk Full Auto!");
-                return;
-            }
-
-            const globalReff = document.getElementById("batch-reff-input").value;
+            const globalReff = document.getElementById("batch-reff-input") ? document.getElementById("batch-reff-input").value : "";
             const loopCount = loopInput ? parseInt(loopInput.value) || 1 : 1;
             const batchId = Date.now().toString();
             
@@ -579,6 +520,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 padsList.forEach(pad => {
                     const adbChk = document.getElementById(`adb-${pad}`);
                     if (adbChk && !adbChk.checked) return;
+                    
+                    const checkboxes = document.querySelectorAll(`.pad-sequence-chk-${pad}:checked`);
+                    const sequence = Array.from(checkboxes).map(c => c.value);
+                    if (sequence.length === 0) return; // Skip PAD if no checkboxes selected
                     
                     const padReffEl = document.getElementById(`reff-${pad}`);
                     const padReffValue = padReffEl && padReffEl.value.trim() ? padReffEl.value.trim() : globalReff;
