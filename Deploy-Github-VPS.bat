@@ -40,7 +40,7 @@ set VPS_RESTART_CMD=systemctl restart vsphone
 :: Jika Anda memakai pm2, ubah VPS_RESTART_CMD menjadi: pm2 restart all
 
 echo Menjalankan perintah Git Pull di VPS...
-ssh %VPS_USER%@%VPS_HOST% "cd '%VPS_DIR%' && git pull origin main && %VPS_RESTART_CMD%"
+ssh %VPS_USER%@%VPS_HOST% "cd '%VPS_DIR%' && git reset --hard HEAD && git pull origin main && %VPS_RESTART_CMD%"
 
 echo.
 echo =======================================================
