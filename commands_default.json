@@ -8,5 +8,7 @@
     "6. Password": "input tap 174 885\nsleep 1.5\ninput tap 84 2004\nsleep 0.2\ninput tap 84 2004\nsleep 0.2\ninput tap 84 2004\nsleep 0.2\ninput tap 84 2004\nsleep 1.5\ninput tap 168 2576\nsleep 1.5\ninput tap 84 2004\nsleep 0.2\ninput tap 84 2004\nsleep 0.2\ninput tap 84 2004\nsleep 0.2\ninput tap 84 2004\nsleep 1.5\ninput tap 219 1251\nsleep 1.5\ninput tap 168 2576\nsleep 1.5\ninput tap 84 2004\nsleep 0.2\ninput tap 84 2004\nsleep 0.2\ninput tap 84 2004\nsleep 0.2\ninput tap 84 2004\nsleep 1.5\ninput tap 168 2576\nsleep 1.5\ninput tap 84 2004\nsleep 0.2\ninput tap 84 2004\nsleep 0.2\ninput tap 84 2004\nsleep 0.2\ninput tap 84 2004\nsleep 1.5\ninput tap 1085 2567\nsleep 1.5\ninput tap 94 2225\nsleep 1\ninput tap 610 2538\nsleep 1.5\ninput tap 1121 158\nsleep 1\ninput tap 610 2538\nsleep 8",
     "8. Predict Sambo": "sleep 1\ninput tap 615 2214\nsleep 4\ninput tap 921 2467\nsleep 5\ninput tap 903 2461\nsleep 2.3\ninput tap 912 2461\nsleep 2.3\ninput tap 618 1557\nsleep 2.3\niniskip tanggalnput tap 916 542\nsleep 2.3\ninput tap 623 1290\nsleep 2.3\ninput tap 1059 1720\nsleep 2.3\ninput tap 623 2563\nsleep 5",
     "9. Logout": "input tap 82 85\nsleep 3\ninput tap 1151 173\nsleep 3\ninput swipe 1212 2571 1200 336 2000\nsleep 1\ninput tap 621 2571\nsleep 2\ninput tap 900 2409\nsleep 6",
-    "10. Reset Device": "SPECIAL_RESET_DEVICE"
+    "10. Reset Device": "SPECIAL_RESET_DEVICE",
+    "11. Flush Elig 1": "wm density reset\nsleep 1\nwm size 1080x2400\nwm density 420",
+    "11. Flush Elig 2": "wm density reset\nsleep 1\nwm size 1440x3120\nwm density 560"
 }

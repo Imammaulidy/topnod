@@ -285,12 +285,32 @@ document.addEventListener("DOMContentLoaded", () => {
                 card.className = "pad-card";
                 
                 const defaultSeq = ["4. Reff", "5. Email", "6. Password", "7. Predict Sambo", "8. Logout"];
-                let checkboxesHtml = commands.map(cmd => `
-                    <div style="display: flex; gap: 5px; margin-bottom: 5px;">
-                        <input type="checkbox" class="pad-sequence-chk-${pad}" value="${cmd}" ${defaultSeq.includes(cmd) ? 'checked' : ''} style="margin: 0; width: auto;" title="Tandai untuk Full Auto">
-                        <button class="run-btn" onclick="runCommand('${pad}', '${cmd}')" style="margin: 0; flex: 1; padding: 6px; font-size: 0.85rem; text-align: left;">${cmd}</button>
-                    </div>
-                `).join("");
+                let html = "";
+                for (let i = 0; i < commands.length; i++) {
+                    let cmd = commands[i];
+                    if (cmd === "11. Flush Elig 1") {
+                        let nextCmd = commands[i+1] === "11. Flush Elig 2" ? commands[i+1] : null;
+                        html += `<div style="display: flex; gap: 5px; margin-bottom: 5px;">`;
+                        html += `<button class="run-btn" onclick="runCommand('${pad}', '${cmd}')" style="margin: 0; flex: 1; padding: 6px; font-size: 0.8rem; text-align: center; border-color: #ef4444; background: rgba(239, 68, 68, 0.2); color: #fca5a5;">Flush Elig 1</button>`;
+                        if (nextCmd) {
+                            html += `<button class="run-btn" onclick="runCommand('${pad}', '${nextCmd}')" style="margin: 0; flex: 1; padding: 6px; font-size: 0.8rem; text-align: center; border-color: #ef4444; background: rgba(239, 68, 68, 0.2); color: #fca5a5;">Flush Elig 2</button>`;
+                            i++; // skip next
+                        }
+                        html += `</div>`;
+                    } else if (cmd === "11. Flush Elig 2") {
+                        html += `<div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                                    <button class="run-btn" onclick="runCommand('${pad}', '${cmd}')" style="margin: 0; flex: 1; padding: 6px; font-size: 0.8rem; text-align: center; border-color: #ef4444; background: rgba(239, 68, 68, 0.2); color: #fca5a5;">Flush Elig 2</button>
+                                 </div>`;
+                    } else {
+                        html += `
+                        <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                            <input type="checkbox" class="pad-sequence-chk-${pad}" value="${cmd}" ${defaultSeq.includes(cmd) ? 'checked' : ''} style="margin: 0; width: auto;" title="Tandai untuk Full Auto">
+                            <button class="run-btn" onclick="runCommand('${pad}', '${cmd}')" style="margin: 0; flex: 1; padding: 6px; font-size: 0.85rem; text-align: left;">${cmd}</button>
+                        </div>
+                        `;
+                    }
+                }
+                let checkboxesHtml = html;
 
                 card.innerHTML = `
                     <div class="pad-header" style="min-height: 85px; align-items: flex-start;">
@@ -307,6 +327,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>
                     </div>
                     
+                    <input type="text" id="reff-${pad}" class="pad-reff-input" placeholder="Kode Reff" style="margin-bottom: 10px; width: 100%; box-sizing: border-box;" />
+
                     <div style="display: flex; gap: 5px; margin-bottom: 10px;">
                         <input type="text" id="manual-adb-${pad}" placeholder="Manual ADB..." style="flex: 1; padding: 6px; font-size: 0.8rem; background: rgba(0,0,0,0.3); color: white; border: 1px solid #f59e0b; border-radius: 4px; font-family: monospace; min-width: 0;">
                         <button onclick="runManualAdb('${pad}')" style="background-color: #f59e0b; color: white; border: none; border-radius: 4px; padding: 0 10px; font-weight: bold; cursor: pointer; font-size: 0.8rem; flex: 0 0 auto; width: auto;" title="Run Manual ADB">&gt;</button>
@@ -316,7 +338,12 @@ document.addEventListener("DOMContentLoaded", () => {
                         ${checkboxesHtml}
                     </div>
 
-                    <input type="text" id="reff-${pad}" class="pad-reff-input" placeholder="Kode Reff" style="margin-bottom: 10px;" />
+                    <div style="display: flex; justify-content: space-between; gap: 5px; margin-bottom: 10px;">
+                        <button onclick="runHardwareKey('${pad}', 4)" style="flex: 1; background: transparent; color: #cbd5e1; border: 1px solid #475569; border-radius: 4px; padding: 6px; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center;" title="Back">&#9664;</button>
+                        <button onclick="runHardwareKey('${pad}', 3)" style="flex: 1; background: transparent; color: #cbd5e1; border: 1px solid #475569; border-radius: 4px; padding: 6px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;" title="Home">&#8962;</button>
+                        <button onclick="runHardwareKey('${pad}', 187)" style="flex: 1; background: transparent; color: #cbd5e1; border: 1px solid #475569; border-radius: 4px; padding: 6px; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center;" title="Recent">&#10064;</button>
+                    </div>
+
                     <div style="display: flex; gap: 10px; margin-top: auto;">
                         <button class="run-btn" onclick="runCommand('${pad}')" style="flex: 1; margin: 0;">Run Full Auto</button>
                         <button class="stop-btn" onclick="stopCommand('${pad}')" style="flex: 1; margin: 0;">Terminate</button>
@@ -465,6 +492,21 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         
         inputEl.value = ""; // clear after running
+    }
+
+    // Run Hardware Key
+    window.runHardwareKey = function(pad, keycode) {
+        fetch("/api/run", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                pad_code: pad,
+                cmd_name: "Manual ADB",
+                reff_code: "",
+                loop_count: 1,
+                custom_command: "input keyevent " + keycode
+            })
+        });
     }
 
     // Run Command Single or Full Auto

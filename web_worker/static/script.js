@@ -355,6 +355,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 
                 let optionsHtml = `<option value="Full Auto">-- Full Auto --</option>` + commands.map(cmd => `<option value="${cmd}">${cmd}</option>`).join("");
                 
+                let flushButtonsHtml = ``;
+                if (commands.includes("11. Flush Elig 1")) {
+                    flushButtonsHtml = `
+                    <div style="display: flex; gap: 5px; margin-top: 10px; margin-bottom: 10px;">
+                        <button class="run-btn" onclick="document.getElementById('select-${pad}').value='11. Flush Elig 1'; runCommand('${pad}');" style="margin: 0; flex: 1; padding: 6px; font-size: 0.8rem; text-align: center; border-color: #ef4444; background: rgba(239, 68, 68, 0.2); color: #fca5a5;">Flush Elig 1</button>
+                        <button class="run-btn" onclick="document.getElementById('select-${pad}').value='11. Flush Elig 2'; runCommand('${pad}');" style="margin: 0; flex: 1; padding: 6px; font-size: 0.8rem; text-align: center; border-color: #ef4444; background: rgba(239, 68, 68, 0.2); color: #fca5a5;">Flush Elig 2</button>
+                    </div>
+                    `;
+                }
+                
                 card.innerHTML = `
                     <div class="pad-header" style="min-height: 85px; align-items: flex-start;">
                         <div style="display: flex; flex-direction: column; overflow: hidden; margin-right: 5px;">
@@ -370,6 +380,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>
                     </div>
                     
+                    <input type="text" id="reff-${pad}" class="pad-reff-input" placeholder="Kode Reff" style="display:none; margin-bottom: 10px; width: 100%; box-sizing: border-box;" />
+
                     <div style="display: flex; gap: 5px; margin-bottom: 10px;">
                         <input type="text" id="manual-adb-${pad}" placeholder="Manual ADB..." style="flex: 1; padding: 6px; font-size: 0.8rem; background: rgba(0,0,0,0.3); color: white; border: 1px solid #f59e0b; border-radius: 4px; font-family: monospace; min-width: 0;">
                         <button onclick="runManualAdb('${pad}')" style="background-color: #f59e0b; color: white; border: none; border-radius: 4px; padding: 0 10px; font-weight: bold; cursor: pointer; font-size: 0.8rem; flex: 0 0 auto; width: auto;" title="Run Manual ADB">&gt;</button>
@@ -378,8 +390,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     <select id="select-${pad}" onchange="toggleReffInput('${pad}')">
                         ${optionsHtml}
                     </select>
-                    <input type="text" id="reff-${pad}" class="pad-reff-input" placeholder="Kode Reff" style="display:none;" />
+                    ${flushButtonsHtml}
                     
+                    <div style="display: flex; justify-content: space-between; gap: 5px; margin-bottom: 10px;">
+                        <button onclick="runHardwareKey('${pad}', 4)" style="flex: 1; background: transparent; color: #cbd5e1; border: 1px solid #475569; border-radius: 4px; padding: 6px; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center;" title="Back">&#9664;</button>
+                        <button onclick="runHardwareKey('${pad}', 3)" style="flex: 1; background: transparent; color: #cbd5e1; border: 1px solid #475569; border-radius: 4px; padding: 6px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center;" title="Home">&#8962;</button>
+                        <button onclick="runHardwareKey('${pad}', 187)" style="flex: 1; background: transparent; color: #cbd5e1; border: 1px solid #475569; border-radius: 4px; padding: 6px; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center;" title="Recent">&#10064;</button>
+                    </div>
+
                     <div style="display: flex; flex-direction: column; gap: 10px; margin-top: auto;">
                         <button class="run-btn" onclick="runCommand('${pad}')" style="margin: 0;">Run</button>
                         <button class="stop-btn" onclick="stopCommand('${pad}')" style="margin: 0;">Terminate</button>
@@ -528,6 +546,21 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         
         inputEl.value = ""; // clear after running
+    }
+
+    // Run Hardware Key
+    window.runHardwareKey = function(pad, keycode) {
+        fetch("/api/run", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                pad_code: pad,
+                cmd_name: "Manual ADB",
+                reff_code: "",
+                loop_count: 1,
+                custom_command: "input keyevent " + keycode
+            })
+        });
     }
 
     // Run Command Single
