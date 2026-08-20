@@ -21,7 +21,7 @@
   - [3. Linux / VPS](#3-linux--vps)
 - [🎮 Panduan Penggunaan Web Dashboard](#-panduan-penggunaan-web-dashboard)
 - [🤖 Makro & Perintah Otomasi (Commands)](#-makro--perintah-otomasi-commands)
-- [☁️ Deploy & Update VPS Otomatis](#️-deploy--update-vps-otomatis)
+- [📤 Push & Update GitHub (`push.bat`)](#-push--update-github-pushbat)
 - [🔒 Keamanan & Lisensi](#-keamanan--lisensi)
 
 ---
@@ -74,16 +74,14 @@ graph TD
 ```text
 TOPNOD/
 ├── README.md                  # Dokumentasi utama proyek
-├── imam.bat                   # Skrip runner cepat untuk Windows
-├── imam.sh                    # Skrip runner cepat untuk Linux & Termux
+├── run.bat                    # Skrip runner cepat server untuk Windows
+├── run.sh                     # Skrip runner cepat server untuk Linux / VPS
+├── termux.sh                  # Skrip runner cepat server untuk Android (Termux)
+├── push.bat                   # Skrip auto add, commit, dan push ke GitHub
 ├── commands.json              # Konfigurasi perintah ADB & makro aktif
 ├── commands_default.json      # Backup template perintah default
-├── Deploy-Github-VPS.bat      # Skrip auto commit GitHub & update otomatis VPS via SSH
 ├── requirements.txt           # Dependensi Python (Flask, requests)
-├── Start-Web.bat              # Skrip start cepat server Flask di Windows
 ├── ref.txt                    # (Opsional) File antrian kode referral TRPH4_
-├── termux_setup/              # Konfigurasi & skrip runner alternatif Termux
-│   └── run_web_termux.sh
 ├── web_worker/                # Inti aplikasi web Flask
 │   ├── app.py                 # Server backend Flask & wrapper VSPhone API
 │   ├── adb_worker_ui.py       # Alternatif GUI Desktop berbasis Tkinter
@@ -107,7 +105,7 @@ TOPNOD/
 ## ⚙️ Persyaratan Sistem
 
 - **Python**: Versi 3.8 atau lebih baru.
-- **Node.js & PM2**: Untuk manajemen background process.
+- **Node.js & PM2**: Untuk manajemen background process di Linux/Termux.
 - **Pip**: Package manager Python.
 - **Browser Modern**: Google Chrome, Mozilla Firefox, Microsoft Edge, atau Brave.
 - **Koneksi Internet**: Untuk komunikasi ke API VSPhone dan TempMail.
@@ -124,7 +122,7 @@ TOPNOD/
    ```
 
 2. **Jalankan Server:**
-   - Cukup klik dua kali file **`imam.bat`** (atau **`Start-Web.bat`**), atau
+   - Cukup klik dua kali file **`run.bat`**, atau
    - Jalankan via terminal:
      ```bash
      cd web_worker && python app.py
@@ -148,13 +146,13 @@ TOPNOD/
    ```
 
 3. **Jalankan Server:**
-   - **Opsi A (Via Script `imam.sh`):**
+   - **Opsi A (Via Script `termux.sh`):**
      ```bash
-     chmod +x imam.sh && ./imam.sh
+     chmod +x termux.sh && ./termux.sh
      ```
    - **Opsi B (Via PM2 di Background):**
      ```bash
-     pm2 start imam.sh --name "topnod"
+     pm2 start termux.sh --name "topnod"
      ```
 
 4. **Akses Dashboard:**
@@ -179,9 +177,9 @@ TOPNOD/
      ```bash
      pm2 start web_worker/app.py --name "topnod" --interpreter python3
      ```
-   - **Atau menggunakan script `imam.sh`:**
+   - **Atau menggunakan script `run.sh`:**
      ```bash
-     chmod +x imam.sh && ./imam.sh
+     chmod +x run.sh && ./run.sh
      ```
 
 ---
@@ -191,10 +189,11 @@ TOPNOD/
 1. **Autentikasi**:
    - Buka halaman login di browser (`http://localhost:3001`).
    - Buat akun dengan memasukkan **Username**, **Password**, dan **Kode Akses** yang valid.
-   - Untuk login Admin, gunakan menu **Login Admin** menggunakan master password.
+   - Untuk login Admin, gunakan menu **Login Admin** menggunakan master password (**`123123`**).
 
 2. **Koneksi Akun VSPhone**:
    - Masukkan **Email** dan **Password** akun VSPhone Anda pada form login VSPhone.
+   - *(Khusus sesi Admin, akun default `teleproyek2@gmail.com` akan otomatis terisi)*.
    - Klik **Login VSPhone** untuk mengaitkan sesi token API.
 
 3. **Memasukkan Daftar PAD**:
@@ -230,16 +229,13 @@ Konfigurasi aksi otomatis disimpan dalam file [`commands.json`](commands.json):
 
 ---
 
-## ☁️ Deploy & Update VPS Otomatis
+## 📤 Push & Update GitHub (`push.bat`)
 
-Proyek ini dilengkapi dengan skrip automasi [`Deploy-Github-VPS.bat`](Deploy-Github-VPS.bat):
+Untuk mengunggah (push) seluruh perubahan kode terbaru ke repositori GitHub:
 
-1. Melakukan `git add`, `git commit`, dan `git push` ke branch `main` di GitHub.
-2. Menghubungi server VPS melalui SSH.
-3. Menjalankan perintah `git pull` dan me-restart service backend secara otomatis di VPS:
-   ```bash
-   ssh root1@52.231.78.20 "cd '/home/root1/topnod' && git reset --hard HEAD && git pull origin main && pm2 restart all"
-   ```
+1. Klik dua kali file **[`push.bat`](push.bat)** di root folder proyek.
+2. Masukkan pesan commit yang diinginkan (atau tekan `Enter` untuk pesan default *"Update Otomatis"*).
+3. Skrip akan secara otomatis mengeksekusi `git add .`, `git commit`, dan `git push origin main`.
 
 ---
 
