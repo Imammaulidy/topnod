@@ -2,6 +2,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Framework-Flask-brightgreen.svg)](https://flask.palletsprojects.com/)
+[![PM2](https://img.shields.io/badge/Process%20Manager-PM2-blueviolet.svg)](https://pm2.keymetrics.io/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android%20(Termux)-orange.svg)]()
 
@@ -73,13 +74,14 @@ graph TD
 ```text
 TOPNOD/
 ├── README.md                  # Dokumentasi utama proyek
+├── imam.sh                    # Skrip runner cepat untuk Linux & Termux
 ├── commands.json              # Konfigurasi perintah ADB & makro aktif
 ├── commands_default.json      # Backup template perintah default
 ├── Deploy-Github-VPS.bat      # Skrip auto commit GitHub & update otomatis VPS via SSH
 ├── requirements.txt           # Dependensi Python (Flask, requests)
 ├── Start-Web.bat              # Skrip start cepat server Flask di Windows
 ├── ref.txt                    # (Opsional) File antrian kode referral TRPH4_
-├── termux_setup/              # Konfigurasi & skrip runner untuk Android Termux
+├── termux_setup/              # Konfigurasi & skrip runner alternatif Termux
 │   └── run_web_termux.sh
 ├── web_worker/                # Inti aplikasi web Flask
 │   ├── app.py                 # Server backend Flask & wrapper VSPhone API
@@ -104,6 +106,7 @@ TOPNOD/
 ## ⚙️ Persyaratan Sistem
 
 - **Python**: Versi 3.8 atau lebih baru.
+- **Node.js & PM2**: Untuk manajemen background process.
 - **Pip**: Package manager Python.
 - **Browser Modern**: Google Chrome, Mozilla Firefox, Microsoft Edge, atau Brave.
 - **Koneksi Internet**: Untuk komunikasi ke API VSPhone dan TempMail.
@@ -114,85 +117,78 @@ TOPNOD/
 
 ### 1. Windows (Lokal)
 
-1. **Clone repository atau download folder proyek:**
+1. **Clone repository & Install dependensi (1 Command):**
    ```bash
-   git clone https://github.com/Imammaulidy/topnod.git
-   cd topnod
+   git clone https://github.com/Imammaulidy/topnod.git && cd topnod && pip install -r requirements.txt
    ```
 
-2. **Install dependensi Python:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Jalankan Server:**
+2. **Jalankan Server:**
    - Cukup klik dua kali file **`Start-Web.bat`**, atau
-   - Jalankan lewat Command Prompt / PowerShell:
+   - Jalankan via terminal:
      ```bash
-     cd web_worker
-     python app.py
+     cd web_worker && python app.py
      ```
 
-4. **Akses Dashboard:**
+3. **Akses Dashboard:**
    Buka browser dan kunjungi: **`http://127.0.0.1:3001`** atau **`http://localhost:3001`**.
 
 ---
 
 ### 2. Android (Termux)
 
-1. **Update package dan install Python di Termux:**
+1. **Update package & Install PM2:**
    ```bash
-   pkg update && pkg upgrade -y
-   pkg install python git -y
+   pkg update -y && pkg install python git nodejs -y && npm install -g pm2
    ```
 
-2. **Clone repo dan masuk ke direktori:**
+2. **Clone repo & Install dependensi (1 Command):**
    ```bash
-   git clone https://github.com/Imammaulidy/topnod.git
-   cd topnod
+   git clone https://github.com/Imammaulidy/topnod.git && cd topnod && pip install -r requirements.txt
    ```
 
-3. **Install dependensi:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+3. **Jalankan Server:**
+   - **Opsi A (Via Script `imam.sh`):**
+     ```bash
+     chmod +x imam.sh && ./imam.sh
+     ```
+   - **Opsi B (Via PM2 di Background):**
+     ```bash
+     pm2 start imam.sh --name "topnod"
+     ```
 
-4. **Jalankan server via skrip Termux:**
-   ```bash
-   chmod +x termux_setup/run_web_termux.sh
-   ./termux_setup/run_web_termux.sh
-   ```
-
-5. **Akses Dashboard:**
-   Buka browser di HP ke **`http://localhost:3001`** (atau `http://localhost:5000` sesuai port konfigurasi).
+4. **Akses Dashboard:**
+   Buka browser di HP ke **`http://localhost:3001`** (atau dari PC menggunakan IP WiFi HP, misal `http://192.168.x.x:3001`).
 
 ---
 
 ### 3. Linux / VPS
 
-1. **Persiapkan environment:**
+1. **Persiapan Environment & Install PM2:**
    ```bash
-   sudo apt update && sudo apt install python3 python3-pip git -y
-   git clone https://github.com/Imammaulidy/topnod.git
-   cd topnod
-   pip3 install -r requirements.txt
+   sudo apt update && sudo apt install python3 python3-pip git nodejs npm -y && sudo npm install -g pm2
    ```
 
-2. **Jalankan di background menggunakan `systemd` atau `pm2`:**
+2. **Clone repo & Install dependensi (1 Command):**
    ```bash
-   # Menggunakan PM2
-   pm2 start web_worker/app.py --name "topnod-worker" --interpreter python3
-   
-   # Atau langsung via Python
-   python3 web_worker/app.py
+   git clone https://github.com/Imammaulidy/topnod.git && cd topnod && pip3 install -r requirements.txt
    ```
+
+3. **Jalankan Server:**
+   - **Menggunakan PM2 (Rekomendasi - Berjalan di Background):**
+     ```bash
+     pm2 start web_worker/app.py --name "topnod" --interpreter python3
+     ```
+   - **Atau menggunakan script `imam.sh`:**
+     ```bash
+     chmod +x imam.sh && ./imam.sh
+     ```
 
 ---
 
 ## 🎮 Panduan Penggunaan Web Dashboard
 
 1. **Autentikasi**:
-   - Buka halaman login di browser.
+   - Buka halaman login di browser (`http://localhost:3001`).
    - Buat akun dengan memasukkan **Username**, **Password**, dan **Kode Akses** yang valid.
    - Untuk login Admin, gunakan menu **Login Admin** menggunakan master password.
 
@@ -241,7 +237,7 @@ Proyek ini dilengkapi dengan skrip automasi [`Deploy-Github-VPS.bat`](Deploy-Git
 2. Menghubungi server VPS melalui SSH.
 3. Menjalankan perintah `git pull` dan me-restart service backend secara otomatis di VPS:
    ```bash
-   ssh root1@52.231.78.20 "cd '/home/root1/topnod' && git reset --hard HEAD && git pull origin main && systemctl restart vsphone"
+   ssh root1@52.231.78.20 "cd '/home/root1/topnod' && git reset --hard HEAD && git pull origin main && pm2 restart all"
    ```
 
 ---
