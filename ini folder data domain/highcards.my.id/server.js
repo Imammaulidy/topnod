@@ -1759,7 +1759,7 @@ app.post('/api/admin/delete-code', (req, res) => {
     if (!code) {
         return res.status(400).json({ error: 'Kode wajib diisi.' });
     }
-    if (code === 'imam2507') {
+    if (code === '123123') {
         return res.status(400).json({ error: 'Tidak dapat menghapus Master Admin Key.' });
     }
     if (fs.existsSync(ACCESS_CODES_FILE)) {

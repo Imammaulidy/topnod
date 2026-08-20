@@ -74,6 +74,7 @@ graph TD
 ```text
 TOPNOD/
 ├── README.md                  # Dokumentasi utama proyek
+├── imam.bat                   # Skrip runner cepat untuk Windows
 ├── imam.sh                    # Skrip runner cepat untuk Linux & Termux
 ├── commands.json              # Konfigurasi perintah ADB & makro aktif
 ├── commands_default.json      # Backup template perintah default
@@ -123,7 +124,7 @@ TOPNOD/
    ```
 
 2. **Jalankan Server:**
-   - Cukup klik dua kali file **`Start-Web.bat`**, atau
+   - Cukup klik dua kali file **`imam.bat`** (atau **`Start-Web.bat`**), atau
    - Jalankan via terminal:
      ```bash
      cd web_worker && python app.py

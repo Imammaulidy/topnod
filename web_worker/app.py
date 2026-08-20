@@ -17,7 +17,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 COMMANDS_FILE = os.path.join(BASE_DIR, "commands.json")
 ACCESS_CODES_FILE = os.path.join(BASE_DIR, "access_codes.json")
 USERS_FILE = os.path.join(BASE_DIR, "users.json")
-ADMIN_PASSWORD = "imam2507"
+ADMIN_PASSWORD = "123123"
 COMMANDS = {}
 
 def get_all_users():
