@@ -38,14 +38,30 @@ document.addEventListener("DOMContentLoaded", () => {
     const rememberMe = document.getElementById("remember-me");
     
     // Load from localStorage
-    if (localStorage.getItem("vsphone_email")) {
-        emailInput.value = localStorage.getItem("vsphone_email");
-    }
-    if (localStorage.getItem("vsphone_password")) {
-        passwordInput.value = localStorage.getItem("vsphone_password");
-    }
-    if (localStorage.getItem("vsphone_pads")) {
-        padsText.value = localStorage.getItem("vsphone_pads");
+    if (typeof IS_ADMIN !== 'undefined' && IS_ADMIN) {
+        emailInput.value = localStorage.getItem("vsphone_admin_email") || "teleproyek2@gmail.com";
+        passwordInput.value = localStorage.getItem("vsphone_admin_password") || "Imam2507";
+        if (localStorage.getItem("vsphone_admin_pads")) {
+            padsText.value = localStorage.getItem("vsphone_admin_pads");
+        } else if (localStorage.getItem("vsphone_pads")) {
+            padsText.value = localStorage.getItem("vsphone_pads");
+        }
+    } else {
+        if (localStorage.getItem("vsphone_user_email")) {
+            emailInput.value = localStorage.getItem("vsphone_user_email");
+        } else if (localStorage.getItem("vsphone_email")) {
+            emailInput.value = localStorage.getItem("vsphone_email");
+        }
+        if (localStorage.getItem("vsphone_user_password")) {
+            passwordInput.value = localStorage.getItem("vsphone_user_password");
+        } else if (localStorage.getItem("vsphone_password")) {
+            passwordInput.value = localStorage.getItem("vsphone_password");
+        }
+        if (localStorage.getItem("vsphone_user_pads")) {
+            padsText.value = localStorage.getItem("vsphone_user_pads");
+        } else if (localStorage.getItem("vsphone_pads")) {
+            padsText.value = localStorage.getItem("vsphone_pads");
+        }
     }
     if (localStorage.getItem("vsphone_remember") === "false") {
         rememberMe.checked = false;
@@ -116,11 +132,29 @@ document.addEventListener("DOMContentLoaded", () => {
                 
                 // Save or clear localStorage
                 if (rememberMe.checked) {
+                    if (typeof IS_ADMIN !== 'undefined' && IS_ADMIN) {
+                        localStorage.setItem("vsphone_admin_email", email);
+                        localStorage.setItem("vsphone_admin_password", password);
+                        localStorage.setItem("vsphone_admin_pads", padsText);
+                    } else {
+                        localStorage.setItem("vsphone_user_email", email);
+                        localStorage.setItem("vsphone_user_password", password);
+                        localStorage.setItem("vsphone_user_pads", padsText);
+                    }
                     localStorage.setItem("vsphone_email", email);
                     localStorage.setItem("vsphone_password", password);
                     localStorage.setItem("vsphone_pads", padsText);
                     localStorage.setItem("vsphone_remember", "true");
                 } else {
+                    if (typeof IS_ADMIN !== 'undefined' && IS_ADMIN) {
+                        localStorage.removeItem("vsphone_admin_email");
+                        localStorage.removeItem("vsphone_admin_password");
+                        localStorage.removeItem("vsphone_admin_pads");
+                    } else {
+                        localStorage.removeItem("vsphone_user_email");
+                        localStorage.removeItem("vsphone_user_password");
+                        localStorage.removeItem("vsphone_user_pads");
+                    }
                     localStorage.removeItem("vsphone_email");
                     localStorage.removeItem("vsphone_password");
                     localStorage.removeItem("vsphone_pads");
