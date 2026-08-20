@@ -55,16 +55,16 @@
 
 ```mermaid
 graph TD
-    A[Pengguna / Browser Web] -->|HTTP / REST API| B[Flask Server (Port 3001)]
-    B --> C[Auth & Access Control]
-    B --> D[Queue & State Manager]
-    B --> E[VsphoneAPI Client]
+    A["Pengguna / Browser Web"] -->|"HTTP / REST API"| B["Flask Server (Port 3001)"]
+    B --> C["Auth & Access Control"]
+    B --> D["Queue & State Manager"]
+    B --> E["VsphoneAPI Client"]
     
-    E -->|HTTPS REST API| F[VSPhone Cloud Server]
-    F -->|vcAdb / asyncAdb| G[Android Cloud Phones / PADs]
+    E -->|"HTTPS REST API"| F["VSPhone Cloud Server"]
+    F -->|"vcAdb / asyncAdb"| G["Android Cloud Phones / PADs"]
     
-    B -->|Fetch OTP| H[TempMail API / IMAP Service]
-    D <--> I[commands.json & ref.txt]
+    B -->|"Fetch OTP"| H["TempMail API / IMAP Service"]
+    D <--> I["commands.json & ref.txt"]
 ```
 
 ---
